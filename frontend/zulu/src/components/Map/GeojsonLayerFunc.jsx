@@ -2,24 +2,24 @@ import React, {useState, useEffect} from 'react';
 import {Marker, FeatureGroup, Popup} from 'react-leaflet';
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import Card from '../Card/Card'
+import StoryService from '../../services/story.service'
 
-var fetchData = function fetchData(url, options) {
-    let request = fetch(url, options);
-    return request
-        .then(r => r.json());
 
+
+function parseImagePath(imageId) {
+    // TODO: use the StoryService
+    return "http://localhost:8342/api/story/image?image_id=" + imageId;
 }
 
-export default function GeojsonLayer({url, cluster}) {
+
+export default function GeojsonLayer({lat, lng, maxDist, cluster}) {
     const [data, setData] = useState([]);
 
     useEffect(() => {
-        if (url) {
+        if (lat && lng && maxDist) {
             const abortController = new AbortController();
 
-                fetchData(url, {signal: abortController.signal}).then(data => {
-                setData(data);
-            });
+            StoryService.getUserStories(lng, lat, maxDist).then(response => setData(response.data));
 
             // cancel fetch on component unmount
             return () => {
@@ -27,7 +27,7 @@ export default function GeojsonLayer({url, cluster}) {
             };
         }
 
-    }, [url]);
+    }, [lat, lng, maxDist]);
 
     var GroupComponent = cluster ? MarkerClusterGroup : FeatureGroup;
 
@@ -40,17 +40,16 @@ export default function GeojsonLayer({url, cluster}) {
                     position={f.geometry.coordinates.reverse()}
                 >
                     <Popup minWidth={400} closeButton={true} closeOnClick={false} autoClose={false}>
-                        {/*
-                <div style={{backgroundColor:"white", color:"black"}}>
-                  <b>Stories in this spot:</b>
-                  <p> {f.story.title}</p>
-                </div>
-*/}
 
                         <Card background='#2980B9' height="400">
-                            {/* <img src={f.properties.img_url} width="200" height="100 "></img> */}
-                            <h1>{f.story.title}</h1>
-                            <p style={{'font-size': "16px"}}>{f.story.content}
+                            <h3>{f.story.title}</h3>
+                            <h5>Added by {f.user_id} </h5>
+                            { f.story.hasOwnProperty('image_id') && f.story.image_id != null ?
+                                <img src={parseImagePath(f.story.image_id)} style={{maxHeight: "430px", maxWidth: "430px"}}></img>
+                                :
+                                <p></p>
+                            }
+                            <p style={{'font-size': "12px"}}>{f.story.content}
                             </p>
 
                         </Card>
